@@ -1,0 +1,23 @@
+{
+  "name": "com.sofunny.render-pipelines.frp",
+  "description": "\u9879\u76ee\u540d\u79f0\uff1aFunny Rendering Pipeline\n\u5f00\u53d1\u4eba\u5458\uff1a\u6731\u78ca\uff08TA\uff09\uff0c\u674e\u6653\u5b87\uff08TA\uff09\n\u7279\u6b8a\u5907\u6ce8\uff1a\u8fd9\u4e2a\u5e93\u4f9d\u8d56 SRP\uff0cURP\uff0c\u4ee5\u53ca URP AssemblyInfo \u7684\u652f\u6301",
+  "version": "0.0.1",
+  "unity": "2022.2",
+  "displayName": "SoFunny FRP",
+  "dependencies": {
+    "com.unity.mathematics": "1.2.1",
+    "com.unity.burst": "1.7.3",
+    "com.unity.render-pipelines.core": "14.0.4",
+    "com.unity.shadergraph": "14.0.4",
+    "com.unity.render-pipelines.universal": "14.0.4"
+  },
+  "keywords": [
+    "graphics",
+    "performance",
+    "rendering",
+    "mobile",
+    "render",
+    "pipeline",
+    "sofunny"
+  ]
+}
