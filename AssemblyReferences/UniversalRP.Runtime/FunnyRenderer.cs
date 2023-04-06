@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering.Universal.Internal;
 
@@ -9,7 +10,29 @@ namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderer : ScriptableRenderer {
         internal RenderTargetBufferSystem m_RenderTargetBufferSystem;
         DrawSkyboxPass m_DrawSkyboxPass;
+        DrawObjectsPass m_DrawOpaquesPass;
+
+        StencilState m_DefaultStencilState;
+
+#if UNITY_SWITCH || UNITY_ANDROID
+        const GraphicsFormat k_DepthStencilFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+        const int k_DepthBufferBits = 24;
+#else
+        const GraphicsFormat k_DepthStencilFormat = GraphicsFormat.D32_SFloat_S8_UInt;
+        const int k_DepthBufferBits = 32;
+#endif
+
         public FunnyRenderer(FunnyRendererData funnyRendererData) : base(funnyRendererData) {
+            // 模板测试设置
+            StencilStateData stencilData = funnyRendererData.defaultStencilState;
+            m_DefaultStencilState = StencilState.defaultValue;
+            m_DefaultStencilState.enabled = stencilData.overrideStencilState;
+            m_DefaultStencilState.SetCompareFunction(stencilData.stencilCompareFunction);
+            m_DefaultStencilState.SetPassOperation(stencilData.passOperation);
+            m_DefaultStencilState.SetFailOperation(stencilData.failOperation);
+            m_DefaultStencilState.SetZFailOperation(stencilData.zFailOperation);
+
+            m_DrawOpaquesPass = new DrawObjectsPass(URPProfileId.DrawOpaqueObjects.GetType().Name, true, RenderPassEvent.BeforeRenderingOpaques, RenderQueueRange.opaque, funnyRendererData.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference);
             m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
         }
 
@@ -20,6 +43,7 @@ namespace UnityEngine.Rendering.SoFunny {
             ref CameraData cameraData = ref renderingData.cameraData;
             Camera camera = cameraData.camera;
 
+            EnqueuePass(m_DrawOpaquesPass);
             if (camera.clearFlags == CameraClearFlags.Skybox && cameraData.renderType != CameraRenderType.Overlay) {
                 if (RenderSettings.skybox != null || (camera.TryGetComponent(out Skybox cameraSkybox) && cameraSkybox.material != null))
                     EnqueuePass(m_DrawSkyboxPass);
