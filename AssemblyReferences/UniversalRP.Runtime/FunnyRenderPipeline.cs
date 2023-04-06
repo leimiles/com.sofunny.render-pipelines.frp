@@ -16,45 +16,7 @@ namespace UnityEngine.Rendering.SoFunny {
         internal enum FRPProfileId {
             // CPU
             FunnyRenderTotal,
-            UpdateVolumeFramework,
             RenderCameraStack,
-
-            // GPU
-            AdditionalLightsShadow,
-            ColorGradingLUT,
-            CopyColor,
-            CopyDepth,
-            DepthNormalPrepass,
-            DepthPrepass,
-            UpdateReflectionProbeAtlas,
-
-            // DrawObjectsPass
-            DrawOpaqueObjects,
-            DrawTransparentObjects,
-
-            // RenderObjectsPass
-            //RenderObjects,
-
-            LightCookies,
-
-            MainLightShadow,
-            ResolveShadows,
-            SSAO,
-
-            // PostProcessPass
-            StopNaNs,
-            SMAA,
-            GaussianDepthOfField,
-            BokehDepthOfField,
-            MotionBlur,
-            PaniniProjection,
-            UberPostProcess,
-            Bloom,
-            LensFlareDataDriven,
-            MotionVectors,
-            DrawFullscreen,
-
-            FinalBlit
         }
 
         public static FunnyRenderPipelineAsset asset {
@@ -122,6 +84,16 @@ namespace UnityEngine.Rendering.SoFunny {
                 }
             }
 
+#if UNITY_2021_1_OR_NEWER
+            using (new ProfilingScope(null, Profiling.Pipeline.endContextRendering)) {
+                EndContextRendering(context, cameras);
+            }
+#else
+            using (new ProfilingScope(null, Profiling.Pipeline.endFrameRendering))
+            {
+                EndFrameRendering(context, cameras);
+            }
+#endif
         }
 
 
@@ -345,6 +317,8 @@ namespace UnityEngine.Rendering.SoFunny {
 
         static void InitializeRenderingData(FunnyRenderPipelineAsset settings, ref CameraData cameraData, ref CullingResults cullResults,
             bool anyPostProcessingEnabled, CommandBuffer cmd, out RenderingData renderingData) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeRenderingData);
+
             /// 所有灯光
             var visibleLights = cullResults.visibleLights;
             //int mainLightIndex = UniversalRenderPipeline.GetMainLightIndex(settings, visibleLights);
@@ -440,11 +414,6 @@ namespace UnityEngine.Rendering.SoFunny {
                 public static readonly ProfilingSampler initializeStackedCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeStackedCameraData)}");
                 public static readonly ProfilingSampler initializeAdditionalCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeAdditionalCameraData)}");
                 public static readonly ProfilingSampler initializeRenderingData = new ProfilingSampler($"{k_Name}.{nameof(InitializeRenderingData)}");
-                // public static readonly ProfilingSampler initializeShadowData = new ProfilingSampler($"{k_Name}.{nameof(InitializeShadowData)}");
-                // public static readonly ProfilingSampler initializeLightData = new ProfilingSampler($"{k_Name}.{nameof(InitializeLightData)}");
-                // public static readonly ProfilingSampler getPerObjectLightFlags = new ProfilingSampler($"{k_Name}.{nameof(GetPerObjectLightFlags)}");
-                // public static readonly ProfilingSampler getMainLightIndex = new ProfilingSampler($"{k_Name}.{nameof(GetMainLightIndex)}");
-                // public static readonly ProfilingSampler setupPerFrameShaderConstants = new ProfilingSampler($"{k_Name}.{nameof(SetupPerFrameShaderConstants)}");
 
                 public static class Renderer {
                     const string k_Name = nameof(ScriptableRenderer);
