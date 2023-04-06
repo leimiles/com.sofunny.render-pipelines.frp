@@ -28,11 +28,12 @@ namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver {
         Shader m_DefaultShader;
         ScriptableRenderer[] m_Renderers = new ScriptableRenderer[1];
-
-
-        [SerializeField] bool m_SupportsHDR = true;
         internal int m_DefaultRendererIndex = 0;
+        [SerializeField] Shader m_Shader;
+        [SerializeField] Material m_Material;
+        [SerializeField] bool m_SupportsHDR = true;
         [SerializeField] internal ScriptableRendererData[] m_RendererDataList = new ScriptableRendererData[1];
+
 
         /// <summary>
         /// 返回渲染管线的实例，渲染管线会按照该实例的 Render() 函数安排渲染流程
@@ -221,6 +222,9 @@ namespace UnityEngine.Rendering.SoFunny {
         public override Shader defaultShader {
             get {
 #if UNITY_EDITOR
+                if (m_Shader != null) {
+                    return m_Shader;
+                }
                 if (scriptableRendererData != null) {
                     Shader shader = scriptableRendererData.GetDefaultShader();
                     if (shader != null) {
@@ -244,6 +248,9 @@ namespace UnityEngine.Rendering.SoFunny {
         /// </summary>
         Material GetMaterial(DefaultMaterialType materialType) {
 #if UNITY_EDITOR
+            if (m_Material != null) {
+                return m_Material;
+            }
             if (scriptableRendererData == null || editorResources == null) {
                 return null;
             }
