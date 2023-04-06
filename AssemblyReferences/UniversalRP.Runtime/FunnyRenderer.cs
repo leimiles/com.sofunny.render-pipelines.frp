@@ -7,6 +7,7 @@ using UnityEngine.Rendering.Universal.Internal;
 
 namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderer : ScriptableRenderer {
+        internal RenderTargetBufferSystem m_RenderTargetBufferSystem;
         public FunnyRenderer(ScriptableRendererData data) : base(data) {
         }
 
