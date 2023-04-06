@@ -13,28 +13,12 @@ using UnityEditor.ProjectWindowCallback;
 namespace UnityEngine.Rendering.SoFunny {
 
     public enum RendererType {
-        /// <summary>
-        /// Use this for Custom Renderer.
-        /// </summary>
         Custom,
-
-        /// <summary>
-        /// Use this for Universal Renderer.
-        /// </summary>
         FunnyRenderer,
-
-        /// <summary>
-        /// Use this for 2D Renderer.
-        /// </summary>
         _2DRenderer,
-        // /// <summary>
-        // /// This name was used before the Universal Renderer was implemented.
-        // /// </summary>
-        // [Obsolete("ForwardRenderer has been renamed (UnityUpgradable) -> UniversalRenderer", true)]
-        // ForwardRenderer = UniversalRenderer,
     }
 
-    public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver{
+    public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver {
         ScriptableRenderer[] m_Renderers = new ScriptableRenderer[1];
 
 
