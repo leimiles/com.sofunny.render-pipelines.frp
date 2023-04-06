@@ -11,6 +11,8 @@ Shader "SoFunny/FRP/Unlit"
 
         Pass
         {
+            Tags { "LightMode" = "FRP" }
+
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag

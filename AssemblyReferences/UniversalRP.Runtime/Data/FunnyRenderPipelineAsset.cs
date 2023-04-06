@@ -119,7 +119,7 @@ namespace UnityEngine.Rendering.SoFunny {
             if (rendererData != null) {
                 instance.m_RendererDataList[0] = rendererData;
             } else {
-                instance.m_RendererDataList[0] = CreateInstance<FunnyRendererData>(); //////////// 是否重写RenderData？？？？？？
+                instance.m_RendererDataList[0] = CreateInstance<FunnyRendererData>();
             }
             return instance;
         }
