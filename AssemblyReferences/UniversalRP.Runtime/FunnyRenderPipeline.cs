@@ -5,11 +5,57 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Profiling;
+
 namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderPipeline : RenderPipeline {
         internal const int defaultRenderingLayerMask = 0x00000001;
 
         private readonly FunnyRenderPipelineAsset pipelineAsset;
+
+        internal enum FRPProfileId {
+            // CPU
+            FunnyRenderTotal,
+            UpdateVolumeFramework,
+            RenderCameraStack,
+
+            // GPU
+            AdditionalLightsShadow,
+            ColorGradingLUT,
+            CopyColor,
+            CopyDepth,
+            DepthNormalPrepass,
+            DepthPrepass,
+            UpdateReflectionProbeAtlas,
+
+            // DrawObjectsPass
+            DrawOpaqueObjects,
+            DrawTransparentObjects,
+
+            // RenderObjectsPass
+            //RenderObjects,
+
+            LightCookies,
+
+            MainLightShadow,
+            ResolveShadows,
+            SSAO,
+
+            // PostProcessPass
+            StopNaNs,
+            SMAA,
+            GaussianDepthOfField,
+            BokehDepthOfField,
+            MotionBlur,
+            PaniniProjection,
+            UberPostProcess,
+            Bloom,
+            LensFlareDataDriven,
+            MotionVectors,
+            DrawFullscreen,
+
+            FinalBlit
+        }
 
         public static FunnyRenderPipelineAsset asset {
             get => GraphicsSettings.currentRenderPipeline as FunnyRenderPipelineAsset;
@@ -19,9 +65,6 @@ namespace UnityEngine.Rendering.SoFunny {
             this.pipelineAsset = asset;
             RTHandles.Initialize(Screen.width, Screen.height);
         }
-
-
-
 
         /// Camera Render Start
 #if UNITY_2021_1_OR_NEWER
@@ -39,11 +82,15 @@ namespace UnityEngine.Rendering.SoFunny {
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
 #endif
         {
-            //using var profScope = new ProfilingScope(null, ProfilingSampler.Get(URPProfileId.UniversalRenderTotal));
+            using var profScope = new ProfilingScope(null, ProfilingSampler.Get(FRPProfileId.FunnyRenderTotal));
 #if UNITY_2021_1_OR_NEWER
-            BeginContextRendering(context, cameras);
+            using (new ProfilingScope(null, Profiling.Pipeline.beginContextRendering)) {
+                BeginContextRendering(context, cameras);
+            }
 #else
-            BeginFrameRendering(context, cameras);
+            using (new ProfilingScope(null, Profiling.Pipeline.beginFrameRendering)){
+                BeginFrameRendering(context, cameras);
+            }
 #endif
             GraphicsSettings.lightsUseLinearIntensity = (QualitySettings.activeColorSpace == ColorSpace.Linear);
             GraphicsSettings.lightsUseColorTemperature = true;
@@ -62,12 +109,16 @@ namespace UnityEngine.Rendering.SoFunny {
                 if (UniversalRenderPipeline.IsGameCamera(camera)) {
                     RenderCameraStack(context, camera);
                 } else {
-                    BeginCameraRendering(context, camera);
+                    using (new ProfilingScope(null, Profiling.Pipeline.beginCameraRendering)) {
+                        BeginCameraRendering(context, camera);
+                    }
                     // Volume控件 暂时不需要
                     //UpdateVolumeFramework(camera, null);
 
                     RenderSingleCameraInternal(context, camera);
-                    EndCameraRendering(context, camera);
+                    using (new ProfilingScope(null, Profiling.Pipeline.endCameraRendering)) {
+                        EndCameraRendering(context, camera);
+                    }
                 }
             }
 
@@ -78,6 +129,8 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 渲染一个摄像机堆栈，将最后一个摄像机的结果渲染到屏幕
         /// </summary>
         static void RenderCameraStack(ScriptableRenderContext context, Camera camera) {
+            using var profScope = new ProfilingScope(null, ProfilingSampler.Get(FRPProfileId.RenderCameraStack));
+
             camera.TryGetComponent<UniversalAdditionalCameraData>(out var baseCameraAdditionalData);
             // Overlay cameras will be rendered stacked while rendering base cameras
             if (baseCameraAdditionalData != null && baseCameraAdditionalData.renderType == CameraRenderType.Overlay)
@@ -88,15 +141,19 @@ namespace UnityEngine.Rendering.SoFunny {
             /// UI相机使用同一个相机渲染 不使用相机堆栈
             int lastActiveOverlayCameraIndex = -1;
             bool isStackedRendering = lastActiveOverlayCameraIndex != -1;
-
-            BeginCameraRendering(context, camera);
+            using (new ProfilingScope(null, Profiling.Pipeline.beginCameraRendering)) {
+                BeginCameraRendering(context, camera);
+            }
 
             /// 后处理Volume组件
             //UpdateVolumeFramework(camera, baseCameraAdditionalData);
             InitializeCameraData(camera, baseCameraAdditionalData, !isStackedRendering, out var baseCameraData);
             //RenderTextureDescriptor originalTargetDesc = baseCameraData.cameraTargetDescriptor;
             RenderSingleCamera(context, ref baseCameraData, anyPostProcessingEnabled);
-            EndCameraRendering(context, camera);
+
+            using (new ProfilingScope(null, Profiling.Pipeline.endCameraRendering)) {
+                EndCameraRendering(context, camera);
+            }
 
         }
 
@@ -136,43 +193,52 @@ namespace UnityEngine.Rendering.SoFunny {
             ScriptableRenderer.current = render;
             CommandBuffer cmd = CommandBufferPool.Get();
 
-            render.Clear(cameraData.renderType);
+            CommandBuffer cmdScope = cameraData.xr.enabled ? null : cmd;
+            ProfilingSampler sampler = Profiling.TryGetOrAddCameraSampler(camera);
 
-            /// RenderPass 的剔除 FunnyRender需要重新定义这两个函数 现在没有
-            render.OnPreCullRenderPasses(in cameraData);
-            render.SetupCullingParameters(ref cullingParameters, ref cameraData);
+            using (new ProfilingScope(cmdScope, sampler)) {
+                render.Clear(cameraData.renderType);
+                using (new ProfilingScope(null, Profiling.Pipeline.Renderer.setupCullingParameters)) {
+                    /// RenderPass 的剔除 FunnyRender需要重新定义这两个函数 现在没有
+                    render.OnPreCullRenderPasses(in cameraData);
+                    render.SetupCullingParameters(ref cullingParameters, ref cameraData);
+                }
 
-
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
 #if UNITY_EDITOR
-            // Emit scene view UI
-            if (cameraData.isSceneViewCamera)
-                ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
-            else
+                // Emit scene view UI
+                if (cameraData.isSceneViewCamera)
+                    ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
+                else
 #endif
-        /// 提交UI mesh ？
-        if (cameraData.camera.targetTexture != null && cameraData.cameraType != CameraType.Preview)
-                ScriptableRenderContext.EmitGeometryForCamera(camera);
+                /// 提交UI mesh ？
+                if (cameraData.camera.targetTexture != null && cameraData.cameraType != CameraType.Preview)
+                    ScriptableRenderContext.EmitGeometryForCamera(camera);
 
-            var cullResults = context.Cull(ref cullingParameters);
+                var cullResults = context.Cull(ref cullingParameters);
+                InitializeRenderingData(asset, ref cameraData, ref cullResults, anyPostProcessingEnabled, cmd, out var renderingData);
 
-            context.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
-            InitializeRenderingData(asset, ref cameraData, ref cullResults, anyPostProcessingEnabled, cmd, out var renderingData);
+                /// 设置 RTHandles 最大尺寸为摄像机尺寸
+                /// RTHandles 官方介绍
+                /// https://docs.unity3d.com/Packages/com.unity.render-pipelines.core@12.0/manual/rthandle-system-fundamentals.html
+                RTHandles.SetReferenceSize(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
 
-            /// 设置 RTHandles 最大尺寸为摄像机尺寸
-            /// RTHandles 官方介绍
-            /// https://docs.unity3d.com/Packages/com.unity.render-pipelines.core@12.0/manual/rthandle-system-fundamentals.html
-            RTHandles.SetReferenceSize(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
+                /// 插入 Render Pass
+                render.AddRenderPasses(ref renderingData);
+                using (new ProfilingScope(null, Profiling.Pipeline.Renderer.setup)) {
+                    render.Setup(context, ref renderingData);
+                }
 
-            /// 插入 Render Pass
-            render.AddRenderPasses(ref renderingData);
-            render.Setup(context, ref renderingData);
-            render.Execute(context, ref renderingData);
+                render.Execute(context, ref renderingData);
+            }
+
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
-
-            /// 实际执行context的命令
-            context.Submit();
+            using (new ProfilingScope(null, Profiling.Pipeline.Context.submit)) {
+                /// 实际执行context的命令
+                context.Submit();
+            }
 
             ScriptableRenderer.current = null;
         }
@@ -182,6 +248,8 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 获取 UniversalAdditionalCameraData 信息
         /// </summary>
         static void InitializeCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeCameraData);
+
             cameraData = new CameraData();
 
             InitializeStackedCameraData(camera, additionalCameraData, ref cameraData);
@@ -204,6 +272,8 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 设置相机中通用的设置 所有设置都是主相机的参数
         /// </summary>
         static void InitializeStackedCameraData(Camera camera, UniversalAdditionalCameraData baseAdditionalCameraData, ref CameraData cameraData) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeStackedCameraData);
+
             var setting = asset;
             cameraData.targetTexture = camera.targetTexture;
             cameraData.cameraType = camera.cameraType;
@@ -234,6 +304,8 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 设置堆栈相机可以不同的设置
         /// </summary>
         static void InitializeAdditionalCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, ref CameraData cameraData) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeAdditionalCameraData);
+
             var setting = asset;
 
             cameraData.camera = camera;
@@ -326,6 +398,65 @@ namespace UnityEngine.Rendering.SoFunny {
         /// </summary>
         static bool TryGetCullingParameters(CameraData cameraData, out ScriptableCullingParameters cullingParams) {
             return cameraData.camera.TryGetCullingParameters(false, out cullingParams);
+        }
+
+        /// <summary>
+        /// 性能分析Profiling类
+        /// </summary>
+        private static class Profiling {
+            private static Dictionary<int, ProfilingSampler> s_HashSamplerCache = new Dictionary<int, ProfilingSampler>();
+            public static readonly ProfilingSampler unknownSampler = new ProfilingSampler("Unknown");
+
+            // Specialization for camera loop to avoid allocations.
+            public static ProfilingSampler TryGetOrAddCameraSampler(Camera camera) {
+#if UNIVERSAL_PROFILING_NO_ALLOC
+                return unknownSampler;
+#else
+                ProfilingSampler ps = null;
+                int cameraId = camera.GetHashCode();
+                bool exists = s_HashSamplerCache.TryGetValue(cameraId, out ps);
+                if (!exists) {
+                    // NOTE: camera.name allocates!
+                    ps = new ProfilingSampler($"{nameof(UniversalRenderPipeline)}.{nameof(RenderSingleCameraInternal)}: {camera.name}");
+                    s_HashSamplerCache.Add(cameraId, ps);
+                }
+                return ps;
+#endif
+            }
+
+            public static class Pipeline {
+#if UNITY_2021_1_OR_NEWER
+                public static readonly ProfilingSampler beginContextRendering = new ProfilingSampler($"{nameof(RenderPipeline)}.{nameof(BeginContextRendering)}");
+                public static readonly ProfilingSampler endContextRendering = new ProfilingSampler($"{nameof(RenderPipeline)}.{nameof(EndContextRendering)}");
+#else
+                public static readonly ProfilingSampler beginFrameRendering = new ProfilingSampler($"{nameof(RenderPipeline)}.{nameof(BeginFrameRendering)}");
+                public static readonly ProfilingSampler endFrameRendering = new ProfilingSampler($"{nameof(RenderPipeline)}.{nameof(EndFrameRendering)}");
+#endif
+                public static readonly ProfilingSampler beginCameraRendering = new ProfilingSampler($"{nameof(RenderPipeline)}.{nameof(BeginCameraRendering)}");
+                public static readonly ProfilingSampler endCameraRendering = new ProfilingSampler($"{nameof(RenderPipeline)}.{nameof(EndCameraRendering)}");
+
+                const string k_Name = nameof(FunnyRenderPipeline);
+                public static readonly ProfilingSampler initializeCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeCameraData)}");
+                public static readonly ProfilingSampler initializeStackedCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeStackedCameraData)}");
+                public static readonly ProfilingSampler initializeAdditionalCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeAdditionalCameraData)}");
+                public static readonly ProfilingSampler initializeRenderingData = new ProfilingSampler($"{k_Name}.{nameof(InitializeRenderingData)}");
+                // public static readonly ProfilingSampler initializeShadowData = new ProfilingSampler($"{k_Name}.{nameof(InitializeShadowData)}");
+                // public static readonly ProfilingSampler initializeLightData = new ProfilingSampler($"{k_Name}.{nameof(InitializeLightData)}");
+                // public static readonly ProfilingSampler getPerObjectLightFlags = new ProfilingSampler($"{k_Name}.{nameof(GetPerObjectLightFlags)}");
+                // public static readonly ProfilingSampler getMainLightIndex = new ProfilingSampler($"{k_Name}.{nameof(GetMainLightIndex)}");
+                // public static readonly ProfilingSampler setupPerFrameShaderConstants = new ProfilingSampler($"{k_Name}.{nameof(SetupPerFrameShaderConstants)}");
+
+                public static class Renderer {
+                    const string k_Name = nameof(ScriptableRenderer);
+                    public static readonly ProfilingSampler setupCullingParameters = new ProfilingSampler($"{k_Name}.{nameof(ScriptableRenderer.SetupCullingParameters)}");
+                    public static readonly ProfilingSampler setup = new ProfilingSampler($"{k_Name}.{nameof(ScriptableRenderer.Setup)}");
+                };
+
+                public static class Context {
+                    const string k_Name = nameof(ScriptableRenderContext);
+                    public static readonly ProfilingSampler submit = new ProfilingSampler($"{k_Name}.{nameof(ScriptableRenderContext.Submit)}");
+                };
+            };
         }
     }
 }
