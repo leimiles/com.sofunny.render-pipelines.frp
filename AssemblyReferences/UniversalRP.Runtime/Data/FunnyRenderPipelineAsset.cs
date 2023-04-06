@@ -72,10 +72,10 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         // 在菜单中创建Asset
         /// </summary>
-        [MenuItem("Assets/Create/Rendering/Funny Prender Pipeline", priority = CoreUtils.Sections.section2 + CoreUtils.Priorities.assetsCreateRenderingMenuPriority + 1)]
+        [MenuItem("Assets/Create/SoFunny Rendering/FRP Asset (with SoFunny Render)", priority = CoreUtils.Sections.section2 + CoreUtils.Priorities.assetsCreateRenderingMenuPriority + 1)]
         static void CreateFunnyRenderPipeline() {
             ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateFunnyPipelineAsset>(),
-                "Funny Render Pipeline Asset.asset", null, null);
+                "SoFunny Render Pipeline Asset.asset", null, null);
         }
 
 
