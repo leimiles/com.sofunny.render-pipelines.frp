@@ -8,11 +8,22 @@ using UnityEngine.Rendering.Universal.Internal;
 namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderer : ScriptableRenderer {
         internal RenderTargetBufferSystem m_RenderTargetBufferSystem;
-        public FunnyRenderer(ScriptableRendererData data) : base(data) {
+        DrawSkyboxPass m_DrawSkyboxPass;
+        public FunnyRenderer(FunnyRenderData funnyRendererData) : base(funnyRendererData) {
+            m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
         }
 
+        /// <summary>
+        /// 设置Render所需要的内容
+        /// </summary>
         public override void Setup(ScriptableRenderContext context, ref RenderingData renderingData) {
-            throw new System.NotImplementedException();
+            ref CameraData cameraData = ref renderingData.cameraData;
+            Camera camera = cameraData.camera;
+
+            if (camera.clearFlags == CameraClearFlags.Skybox && cameraData.renderType != CameraRenderType.Overlay) {
+                if (RenderSettings.skybox != null || (camera.TryGetComponent(out Skybox cameraSkybox) && cameraSkybox.material != null))
+                    EnqueuePass(m_DrawSkyboxPass);
+            }
         }
     }
 }
