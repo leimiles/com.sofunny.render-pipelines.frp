@@ -4,7 +4,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace UnityEngine.Rendering.SoFunny {
     //public class FunnyRenderData : UniversalRendererData{
-    public class FunnyRenderData : ScriptableRendererData, ISerializationCallbackReceiver {
+    public class FunnyRendererData : ScriptableRendererData, ISerializationCallbackReceiver {
         [SerializeField] LayerMask m_OpaqueLayerMask = -1;
         [SerializeField] StencilStateData m_DefaultStencilState = new StencilStateData() { passOperation = StencilOp.Replace }; // This default state is compatible with deferred renderer.
 

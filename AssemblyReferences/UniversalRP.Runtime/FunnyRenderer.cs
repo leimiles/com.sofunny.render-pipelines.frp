@@ -9,7 +9,7 @@ namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderer : ScriptableRenderer {
         internal RenderTargetBufferSystem m_RenderTargetBufferSystem;
         DrawSkyboxPass m_DrawSkyboxPass;
-        public FunnyRenderer(FunnyRenderData funnyRendererData) : base(funnyRendererData) {
+        public FunnyRenderer(FunnyRendererData funnyRendererData) : base(funnyRendererData) {
             m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
         }
 

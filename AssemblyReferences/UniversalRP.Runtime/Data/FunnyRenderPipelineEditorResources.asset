@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27cfa01c3ccc54147b5c48e5bb6e3508, type: 3}
+  m_Name: FunnyRenderPipelineEditorResources
+  m_EditorClassIdentifier: 
+  shaderResources:
+    unlit: {fileID: 4800000, guid: f98ad0c5198aaa345b02b4921d4e6597, type: 3}
+  materialResources:
+    unlit: {fileID: 2100000, guid: 4ed92d9b8b2f8494bb4f9a7ee92682f3, type: 2}
