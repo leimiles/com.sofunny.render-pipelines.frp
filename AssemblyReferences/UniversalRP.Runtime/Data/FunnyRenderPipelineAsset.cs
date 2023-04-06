@@ -34,7 +34,7 @@ namespace UnityEngine.Rendering.SoFunny {
         // ForwardRenderer = UniversalRenderer,
     }
 
-    public class FunnyRenderPipelineAsset : RenderPipelineAsset {
+    public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver{
         ScriptableRenderer[] m_Renderers = new ScriptableRenderer[1];
 
 
