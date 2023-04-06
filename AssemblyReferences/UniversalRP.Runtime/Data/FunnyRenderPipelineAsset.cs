@@ -1,15 +1,18 @@
-
-using System.IO;
+using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.ProjectWindowCallback;
+using System.IO;
+using UnityEditorInternal;
+using ShaderKeywordFilter = UnityEditor.ShaderKeywordFilter;
 #endif
+
 namespace UnityEngine.Rendering.SoFunny {
 
     public enum RendererType {
@@ -34,7 +37,12 @@ namespace UnityEngine.Rendering.SoFunny {
         // ForwardRenderer = UniversalRenderer,
     }
 
-    public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver{
+    internal enum DefaultMaterialType {
+        Unlit
+    }
+
+    public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver {
+        Shader m_DefaultShader;
         ScriptableRenderer[] m_Renderers = new ScriptableRenderer[1];
 
 
@@ -78,6 +86,34 @@ namespace UnityEngine.Rendering.SoFunny {
                 "Funny Render Pipeline Asset.asset", null, null);
         }
 
+        [NonSerialized]
+        internal FunnyRenderPipelineEditorResources m_EditorResourcesAsset;
+        public static readonly string editorResourcesGUID = "e3f5a85ebd6e3474eb74e9483bc0c868";
+
+        /// <summary>
+        // 创建默认的 editor resources，开发完后关闭可见
+        /// </summary>
+        //[MenuItem("Assets/Create/SoFunny Rendering/FRP Editor Resources", priority = CoreUtils.Sections.section8 + CoreUtils.Priorities.assetsCreateRenderingMenuPriority)]
+        static void CreateFunnyPipelineEditorResources() {
+            var instance = CreateInstance<FunnyRenderPipelineEditorResources>();
+            ResourceReloader.ReloadAllNullIn(instance, packagePath);
+            AssetDatabase.CreateAsset(instance, string.Format("Assets/{0}.asset", typeof(FunnyRenderPipelineEditorResources).Name));
+        }
+
+        FunnyRenderPipelineEditorResources editorResources {
+            get {
+                if (m_EditorResourcesAsset != null && !m_EditorResourcesAsset.Equals(null)) {
+                    return m_EditorResourcesAsset;
+                }
+
+                string resourcePath = AssetDatabase.GUIDToAssetPath(editorResourcesGUID);
+                var objs = InternalEditorUtility.LoadSerializedFileAndForget(resourcePath);
+                m_EditorResourcesAsset = objs != null && objs.Length > 0 ? objs.First() as FunnyRenderPipelineEditorResources : null;
+                return m_EditorResourcesAsset;
+            }
+        }
+
+        public static readonly string packagePath = "Packages/com.sofunny.render-pipelines.frp";
 
         /// <summary>
         // 创建渲染管线 asset 文件，并允许重命名
@@ -99,7 +135,7 @@ namespace UnityEngine.Rendering.SoFunny {
             if (rendererData != null) {
                 instance.m_RendererDataList[0] = rendererData;
             } else {
-                instance.m_RendererDataList[0] = CreateInstance<FunnyRenderData>(); //////////// 是否重写RenderData？？？？？？
+                instance.m_RendererDataList[0] = CreateInstance<FunnyRendererData>(); //////////// 是否重写RenderData？？？？？？
             }
             return instance;
         }
@@ -108,8 +144,8 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         /// 创建对应的 renderer asset 文件
         /// </summary>
-        internal static FunnyRenderData CreateRendererAsset(string path, RendererType type, bool relativePath = true, string suffix = "Renderer") {
-            FunnyRenderData funnyRendererData = CreateRendererData(type);
+        internal static FunnyRendererData CreateRendererAsset(string path, RendererType type, bool relativePath = true, string suffix = "Renderer") {
+            FunnyRendererData funnyRendererData = CreateRendererData(type);
             string dataPath;
             if (relativePath) {
                 dataPath =
@@ -124,11 +160,11 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         /// 创建不同的PipelineRenderData信息
         /// </summary>
-        static FunnyRenderData CreateRendererData(RendererType type) {
+        static FunnyRendererData CreateRendererData(RendererType type) {
             switch (type) {
                 case RendererType.FunnyRenderer:
                 default: {
-                        var rendererData = CreateInstance<FunnyRenderData>();
+                        var rendererData = CreateInstance<FunnyRendererData>();
                         return rendererData;
                     }
                     // case RendererType._2DRenderer: {
@@ -186,7 +222,60 @@ namespace UnityEngine.Rendering.SoFunny {
             return m_Renderers[index];
         }
 
+        /// <summary>
+        /// 在场景中新建 gameobject 时使用的默认 material
+        /// </summary>
+        public override Material defaultMaterial {
+            get {
+                return GetMaterial(DefaultMaterialType.Unlit);
+            }
+        }
 
+        /// <summary>
+        /// 在工程中创建材质球时使用的默认 shader
+        /// </summary>
+        public override Shader defaultShader {
+            get {
+#if UNITY_EDITOR
+                if (scriptableRendererData != null) {
+                    Shader shader = scriptableRendererData.GetDefaultShader();
+                    if (shader != null) {
+                        return defaultShader;
+                    }
+                }
+                if (m_DefaultShader == null) {
+                    string path = AssetDatabase.GUIDToAssetPath(ShaderUtils.GetShaderGUID(ShaderPathID.Unlit));
+                    m_DefaultShader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+                }
+#endif
+                if (m_DefaultShader == null) {
+                    m_DefaultShader = Shader.Find(ShaderUtils.GetShaderPath(ShaderPathID.Unlit));
+                }
+                return m_DefaultShader;
+            }
+        }
+
+        /// <summary>
+        /// 根据不同材质类型获取的默认材质
+        /// </summary>
+        Material GetMaterial(DefaultMaterialType materialType) {
+#if UNITY_EDITOR
+            if (scriptableRendererData == null || editorResources == null) {
+                return null;
+            }
+
+            switch (materialType) {
+                case DefaultMaterialType.Unlit:
+                    return editorResources.materialResources.unlit;
+                default:
+                    return null;
+
+            }
+#else
+            return null;
+#endif
+
+        }
 
         internal ScriptableRendererData scriptableRendererData {
             get {
