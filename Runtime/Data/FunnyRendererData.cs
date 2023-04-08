@@ -3,12 +3,9 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace UnityEngine.Rendering.SoFunny {
-    //public class FunnyRenderData : UniversalRendererData{
     public class FunnyRendererData : ScriptableRendererData, ISerializationCallbackReceiver {
         [SerializeField] LayerMask m_OpaqueLayerMask = -1;
         [SerializeField] StencilStateData m_DefaultStencilState = new StencilStateData() { passOperation = StencilOp.Replace }; // This default state is compatible with deferred renderer.
-
-
 
         /// <summary>
         /// 设置不透明对象的过滤方式

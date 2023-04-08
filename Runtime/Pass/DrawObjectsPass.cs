@@ -55,7 +55,9 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 设置深度测试方式
         /// </summary>
         private static void CameraSetup(PassData data, ref RenderingData renderingData) {
-            if (renderingData.cameraData.renderer.useDepthPriming && data.m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth)) {
+            //if (renderingData.cameraData.renderer.useDepthPriming && data.m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth)) {
+            // 桥接
+            if (ScriptableRendererUtils.IsUseDepthPriming(renderingData.cameraData.renderer) && data.m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth)) {
                 data.m_RenderStateBlock.depthState = new DepthState(false, CompareFunction.Equal);
                 data.m_RenderStateBlock.mask |= RenderStateMask.Depth;
             } else if (data.m_RenderStateBlock.depthState.compareFunction == CompareFunction.Equal) {
@@ -68,13 +70,15 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 执行当前Pass的渲染
         /// </summary>
         private static void ExecutePass(ScriptableRenderContext context, PassData passData, ref RenderingData renderingData) {
-            CommandBuffer cmd = renderingData.commandBuffer;
+            //CommandBuffer cmd = renderingData.commandBuffer;
+            // 桥接
+            CommandBuffer cmd = RenderingDataUtils.GetCommandBuffer(ref renderingData);
             using (new ProfilingScope(cmd, passData.m_ProfilingSampler)) {
                 Camera camera = renderingData.cameraData.camera;
 
                 // 渲染顺序的排列
                 var sortFlags = (passData.m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
-                if (renderingData.cameraData.renderer.useDepthPriming && passData.m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))
+                if (ScriptableRendererUtils.IsUseDepthPriming(renderingData.cameraData.renderer) && passData.m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))
                     sortFlags = SortingCriteria.SortingLayer | SortingCriteria.RenderQueue | SortingCriteria.OptimizeStateChanges | SortingCriteria.CanvasOrder;
 
                 FilteringSettings filteringSettings = passData.m_FilteringSettings;

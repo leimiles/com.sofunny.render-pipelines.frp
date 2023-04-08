@@ -8,16 +8,16 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.Profiling;
 
 namespace UnityEngine.Rendering.SoFunny {
+    internal enum FRPProfileId {
+        // CPU
+        FunnyRenderTotal,
+        RenderCameraStack,
+        DrawOpaqueObjects
+    }
     public class FunnyRenderPipeline : RenderPipeline {
         internal const int defaultRenderingLayerMask = 0x00000001;
 
         private readonly FunnyRenderPipelineAsset pipelineAsset;
-
-        internal enum FRPProfileId {
-            // CPU
-            FunnyRenderTotal,
-            RenderCameraStack,
-        }
 
         public static FunnyRenderPipelineAsset asset {
             get => GraphicsSettings.currentRenderPipeline as FunnyRenderPipelineAsset;
@@ -162,17 +162,23 @@ namespace UnityEngine.Rendering.SoFunny {
                 return;
             }
 
-            ScriptableRenderer.current = render;
+            //ScriptableRenderer.current = render;
+            // 桥接
+            ScriptableRendererUtils.SetRenderer(render);
             CommandBuffer cmd = CommandBufferPool.Get();
-
-            CommandBuffer cmdScope = cameraData.xr.enabled ? null : cmd;
+            // xr is not needed
+            CommandBuffer cmdScope = cmd;
             ProfilingSampler sampler = Profiling.TryGetOrAddCameraSampler(camera);
 
             using (new ProfilingScope(cmdScope, sampler)) {
-                render.Clear(cameraData.renderType);
+                //render.Clear(cameraData.renderType);
+                // 桥接
+                ScriptableRendererUtils.Clear(render, cameraData.renderType);
                 using (new ProfilingScope(null, Profiling.Pipeline.Renderer.setupCullingParameters)) {
                     /// RenderPass 的剔除 FunnyRender需要重新定义这两个函数 现在没有
-                    render.OnPreCullRenderPasses(in cameraData);
+                    //render.OnPreCullRenderPasses(in cameraData);
+                    // 桥接
+                    ScriptableRendererUtils.OnPreCullRenderPasses(render, in cameraData);
                     render.SetupCullingParameters(ref cullingParameters, ref cameraData);
                 }
 
@@ -197,7 +203,10 @@ namespace UnityEngine.Rendering.SoFunny {
                 RTHandles.SetReferenceSize(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
 
                 /// 插入 Render Pass
-                render.AddRenderPasses(ref renderingData);
+                //render.AddRenderPasses(ref renderingData);
+                // 桥接
+                ScriptableRendererUtils.AddRenderPasses(render, ref renderingData);
+
                 using (new ProfilingScope(null, Profiling.Pipeline.Renderer.setup)) {
                     render.Setup(context, ref renderingData);
                 }
@@ -212,7 +221,10 @@ namespace UnityEngine.Rendering.SoFunny {
                 context.Submit();
             }
 
-            ScriptableRenderer.current = null;
+            //ScriptableRenderer.current = null;
+            // 桥接
+            ScriptableRendererUtils.SetRendererNull();
+
         }
 
 
@@ -250,19 +262,26 @@ namespace UnityEngine.Rendering.SoFunny {
             cameraData.targetTexture = camera.targetTexture;
             cameraData.cameraType = camera.cameraType;
 
-            cameraData.isHdrEnabled = camera.allowHDR && setting.supportsHDR;
+            //cameraData.isHdrEnabled = camera.allowHDR && setting.supportsHDR;
 
             Rect cameraRect = camera.rect;
             /// internal 限制
-            cameraData.pixelRect = camera.pixelRect;
-            cameraData.pixelWidth = camera.pixelWidth;
-            cameraData.pixelHeight = camera.pixelHeight;
-            cameraData.aspectRatio = (float)cameraData.pixelWidth / (float)cameraData.pixelHeight;
+            //cameraData.pixelRect = camera.pixelRect;
+            //cameraData.pixelWidth = camera.pixelWidth;
+            //cameraData.pixelHeight = camera.pixelHeight;
+            //cameraData.aspectRatio = (float)cameraData.pixelWidth / (float)cameraData.pixelHeight;
+            // 桥接
+            CameraDataUtils.SetPixelRect(ref cameraData, camera.pixelRect);
+            CameraDataUtils.SetPixelWidth(ref cameraData, camera.pixelWidth);
+            CameraDataUtils.SetPixelHeight(ref cameraData, camera.pixelHeight);
+            CameraDataUtils.SetAspectRatio(ref cameraData);
 
             cameraData.isDefaultViewport = (!(Math.Abs(cameraRect.x) > 0.0f || Math.Abs(cameraRect.y) > 0.0f ||
             Math.Abs(cameraRect.width) < 1.0f || Math.Abs(cameraRect.height) < 1.0f));
 
-            cameraData.xr = XRSystem.emptyPass;
+            //cameraData.xr = XRSystem.emptyPass;
+            // 桥接
+            CameraDataUtils.DisableXR(ref cameraData);
 
             var commonOpaqueFlags = SortingCriteria.CommonOpaque;
             var noFrontToBackOpaqueFlags = SortingCriteria.SortingLayer | SortingCriteria.RenderQueue | SortingCriteria.OptimizeStateChanges | SortingCriteria.CanvasOrder;
@@ -287,21 +306,29 @@ namespace UnityEngine.Rendering.SoFunny {
                 cameraData.renderType = CameraRenderType.Base;
                 cameraData.clearDepth = true;
                 cameraData.renderer = asset.scriptableRenderer;
-                cameraData.useScreenCoordOverride = false;
+                //cameraData.useScreenCoordOverride = false;
+                // 桥接
+                CameraDataUtils.SetUseScreenCoordOverride(ref cameraData, false);
             } else if (additionalCameraData != null) {
                 cameraData.renderType = additionalCameraData.renderType;
                 cameraData.clearDepth = (additionalCameraData.renderType != CameraRenderType.Base) ? additionalCameraData.clearDepth : true;
-                cameraData.useScreenCoordOverride = additionalCameraData.useScreenCoordOverride;
+                //cameraData.useScreenCoordOverride = additionalCameraData.useScreenCoordOverride;
+                // 桥接
+                CameraDataUtils.SetUseScreenCoordOverride(ref cameraData, additionalCameraData.useScreenCoordOverride);
                 cameraData.renderer = asset.scriptableRenderer;
             } else {
                 cameraData.renderType = CameraRenderType.Base;
                 cameraData.clearDepth = true;
-                cameraData.useScreenCoordOverride = false;
+                //cameraData.useScreenCoordOverride = false;
+                // 桥接
+                CameraDataUtils.SetUseScreenCoordOverride(ref cameraData, false);
                 cameraData.renderer = asset.scriptableRenderer;
             }
 
-            Matrix4x4 projectionMatrix = camera.projectionMatrix;
-            cameraData.SetViewAndProjectionMatrix(camera.worldToCameraMatrix, projectionMatrix);
+            //Matrix4x4 projectionMatrix = camera.projectionMatrix;
+            //cameraData.SetViewAndProjectionMatrix(camera.worldToCameraMatrix, projectionMatrix);
+            // 桥接
+            CameraDataUtils.SetViewAndProjectionMatrix(ref cameraData, camera.worldToCameraMatrix, camera.projectionMatrix);
 
             cameraData.worldSpaceCameraPos = camera.transform.position;
 
@@ -328,7 +355,9 @@ namespace UnityEngine.Rendering.SoFunny {
 
             renderingData.cullResults = cullResults;
             renderingData.cameraData = cameraData;
-            renderingData.commandBuffer = cmd;
+            //renderingData.commandBuffer = cmd;
+            // 桥接
+            RenderingDataUtils.SetCommandBuffer(ref renderingData, cmd);
         }
 
 
@@ -391,7 +420,7 @@ namespace UnityEngine.Rendering.SoFunny {
                 bool exists = s_HashSamplerCache.TryGetValue(cameraId, out ps);
                 if (!exists) {
                     // NOTE: camera.name allocates!
-                    ps = new ProfilingSampler($"{nameof(UniversalRenderPipeline)}.{nameof(RenderSingleCameraInternal)}: {camera.name}");
+                    ps = new ProfilingSampler($"{nameof(FunnyRenderPipeline)}.{nameof(RenderSingleCameraInternal)}: {camera.name}");
                     s_HashSamplerCache.Add(cameraId, ps);
                 }
                 return ps;
