@@ -8,7 +8,8 @@ using UnityEngine.Rendering.Universal.Internal;
 
 namespace UnityEngine.Rendering.SoFunny {
     public class FunnyRenderer : ScriptableRenderer {
-        internal RenderTargetBufferSystem m_RenderTargetBufferSystem;
+        // 桥接
+        internal RenderTargetBufferSystemUtils m_ColorBufferSystem;
         DrawSkyboxPass m_DrawSkyboxPass;
         DrawObjectsPass m_DrawOpaquesPass;
 
@@ -32,8 +33,11 @@ namespace UnityEngine.Rendering.SoFunny {
             m_DefaultStencilState.SetFailOperation(stencilData.failOperation);
             m_DefaultStencilState.SetZFailOperation(stencilData.zFailOperation);
 
-            m_DrawOpaquesPass = new DrawObjectsPass(URPProfileId.DrawOpaqueObjects.GetType().Name, true, RenderPassEvent.BeforeRenderingOpaques, RenderQueueRange.opaque, funnyRendererData.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference);
+            m_DrawOpaquesPass = new DrawObjectsPass(FRPProfileId.DrawOpaqueObjects.GetType().Name, true, RenderPassEvent.BeforeRenderingOpaques, RenderQueueRange.opaque, funnyRendererData.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference);
             m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
+
+            // 还不需要
+            //m_ColorBufferSystem = new RenderTargetBufferSystemUtils("_CameraColorAttachment");
         }
 
         /// <summary>

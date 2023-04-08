@@ -52,12 +52,15 @@ namespace UnityEngine.Rendering.SoFunny {
                 m_Renderers = new ScriptableRenderer[1];
             }
 
-            if (m_Renderers == null || m_Renderers.Length != m_RendererDataList.Length)
+            if (m_Renderers == null || m_Renderers.Length != m_RendererDataList.Length) {
                 m_Renderers = new ScriptableRenderer[m_RendererDataList.Length];
+            }
 
             for (int i = 0; i < m_RendererDataList.Length; ++i) {
                 if (m_RendererDataList[i] != null) {
-                    m_Renderers[m_DefaultRendererIndex] = m_RendererDataList[i].InternalCreateRenderer();
+                    //m_Renderers[m_DefaultRendererIndex] = m_RendererDataList[i].InternalCreateRenderer();
+                    // 桥接
+                    m_Renderers[m_DefaultRendererIndex] = ScriptableRendererDataUtils.InternalCreateRenderer(m_RendererDataList[i]);
                 }
             }
         }
@@ -226,7 +229,9 @@ namespace UnityEngine.Rendering.SoFunny {
                     return m_Shader;
                 }
                 if (scriptableRendererData != null) {
-                    Shader shader = scriptableRendererData.GetDefaultShader();
+                    //Shader shader = scriptableRendererData.GetDefaultShader();
+                    // 桥接
+                    Shader shader = ScriptableRendererDataUtils.GetDefaultShader(scriptableRendererData);
                     if (shader != null) {
                         return defaultShader;
                     }
@@ -284,9 +289,14 @@ namespace UnityEngine.Rendering.SoFunny {
                     return null;
                 }
 
-                if (scriptableRendererData.isInvalidated || m_Renderers[m_DefaultRendererIndex] == null) {
+                //if (scriptableRendererData.isInvalidated || m_Renderers[m_DefaultRendererIndex] == null) {
+                // 桥接
+                if (ScriptableRendererDataUtils.IsInvalidated(scriptableRendererData) || m_Renderers[m_DefaultRendererIndex] == null) {
                     DestroyRenderer(ref m_Renderers[m_DefaultRendererIndex]);
-                    m_Renderers[m_DefaultRendererIndex] = scriptableRendererData.InternalCreateRenderer();
+
+                    //m_Renderers[m_DefaultRendererIndex] = scriptableRendererData.InternalCreateRenderer();
+                    // 桥接
+                    m_Renderers[m_DefaultRendererIndex] = ScriptableRendererDataUtils.InternalCreateRenderer(scriptableRendererData);
                 }
 
                 return m_Renderers[m_DefaultRendererIndex];
