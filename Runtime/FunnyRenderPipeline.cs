@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -8,6 +10,15 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.Profiling;
 
 namespace UnityEngine.Rendering.SoFunny {
+    static class NativeArrayExtensions {
+        public static unsafe ref T UnsafeElementAt<T>(this NativeArray<T> array, int index) where T : struct {
+            return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafeReadOnlyPtr(), index);
+        }
+
+        public static unsafe ref T UnsafeElementAtMutable<T>(this NativeArray<T> array, int index) where T : struct {
+            return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafePtr(), index);
+        }
+    }
     internal enum FRPProfileId {
         // CPU
         FunnyRenderTotal,
@@ -228,6 +239,25 @@ namespace UnityEngine.Rendering.SoFunny {
         }
 
         /// <summary>
+        /// 初始化 lightdata 数据
+        /// </summary>
+        static void InitializeLightData(FunnyRenderPipelineAsset settings, NativeArray<VisibleLight> visibleLights, int mainLightIndex, out LightData lightData) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeLightData);
+            lightData.mainLightIndex = mainLightIndex;
+            lightData.visibleLights = visibleLights;
+
+            lightData.additionalLightsCount = 0;
+            lightData.maxPerObjectAdditionalLightsCount = 0;
+
+            lightData.supportsAdditionalLights = false;
+            lightData.shadeAdditionalLightsPerVertex = false;
+            lightData.supportsMixedLighting = false;
+            lightData.reflectionProbeBlending = false;
+            lightData.reflectionProbeBoxProjection = false;
+            lightData.supportsLightLayers = false;
+        }
+
+        /// <summary>
         /// 获取 FunnyAdditionalCameraData 信息
         /// </summary>
         static void InitializeCameraData(Camera camera, FunnyAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData) {
@@ -347,16 +377,44 @@ namespace UnityEngine.Rendering.SoFunny {
 
             /// 所有灯光
             var visibleLights = cullResults.visibleLights;
-            //int mainLightIndex = UniversalRenderPipeline.GetMainLightIndex(settings, visibleLights);
+            int mainLightIndex = GetMainLightIndex(settings, visibleLights);
 
             /// Temporary
             renderingData = new RenderingData();
 
             renderingData.cullResults = cullResults;
             renderingData.cameraData = cameraData;
+            InitializeLightData(settings, visibleLights, mainLightIndex, out renderingData.lightData);
             //renderingData.commandBuffer = cmd;
             // 桥接
             RenderingDataUtils.SetCommandBuffer(ref renderingData, cmd);
+        }
+
+        static int GetMainLightIndex(FunnyRenderPipelineAsset settings, NativeArray<VisibleLight> visibleLights) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.getMainLightIndex);
+            if (visibleLights.Length == 0) {
+                return -1;
+            }
+            Light sunLight = RenderSettings.sun;
+            int brightestDirectionalLightIndex = -1;
+            float brightestLightIntensity = 0.0f;
+            for (int i = 0; i < visibleLights.Length; ++i) {
+                ref VisibleLight currentVisibleLight = ref visibleLights.UnsafeElementAtMutable(i);
+                Light currentLight = currentVisibleLight.light;
+                if (currentLight == null) {
+                    break;
+                }
+                if (currentVisibleLight.lightType == LightType.Directional) {
+                    if (currentLight == sunLight) {
+                        return i;
+                    }
+                    if (currentLight.intensity > brightestLightIntensity) {
+                        brightestLightIntensity = currentLight.intensity;
+                        brightestDirectionalLightIndex = i;
+                    }
+                }
+            }
+            return brightestDirectionalLightIndex;
         }
 
 
@@ -439,9 +497,11 @@ namespace UnityEngine.Rendering.SoFunny {
 
                 const string k_Name = nameof(FunnyRenderPipeline);
                 public static readonly ProfilingSampler initializeCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeCameraData)}");
+                public static readonly ProfilingSampler initializeLightData = new ProfilingSampler($"{k_Name}.{nameof(InitializeLightData)}");
                 public static readonly ProfilingSampler initializeStackedCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeStackedCameraData)}");
                 public static readonly ProfilingSampler initializeAdditionalCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeAdditionalCameraData)}");
                 public static readonly ProfilingSampler initializeRenderingData = new ProfilingSampler($"{k_Name}.{nameof(InitializeRenderingData)}");
+                public static readonly ProfilingSampler getMainLightIndex = new ProfilingSampler($"{k_Name}.{nameof(GetMainLightIndex)}");
 
                 public static class Renderer {
                     const string k_Name = nameof(ScriptableRenderer);
