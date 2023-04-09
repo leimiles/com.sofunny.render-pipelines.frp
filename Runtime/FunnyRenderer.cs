@@ -13,6 +13,8 @@ namespace UnityEngine.Rendering.SoFunny {
         DrawSkyboxPass m_DrawSkyboxPass;
         DrawObjectsPass m_DrawOpaquesPass;
 
+        ForwardLights m_ForwardLights;
+
         StencilState m_DefaultStencilState;
 
 #if UNITY_SWITCH || UNITY_ANDROID
@@ -38,12 +40,23 @@ namespace UnityEngine.Rendering.SoFunny {
 
             // 还不需要
             //m_ColorBufferSystem = new RenderTargetBufferSystemUtils("_CameraColorAttachment");
+
+            m_ForwardLights = new ForwardLights();
+        }
+
+        /// <summary>
+        /// 设置灯光参数
+        /// </summary>
+        public override void SetupLights(ScriptableRenderContext context, ref RenderingData renderingData) {
+            m_ForwardLights.Setup(context, ref renderingData);
         }
 
         /// <summary>
         /// 设置Render所需要的内容
         /// </summary>
         public override void Setup(ScriptableRenderContext context, ref RenderingData renderingData) {
+            //m_ForwardLights.PreSetup(ref renderingData);
+
             ref CameraData cameraData = ref renderingData.cameraData;
             Camera camera = cameraData.camera;
 
