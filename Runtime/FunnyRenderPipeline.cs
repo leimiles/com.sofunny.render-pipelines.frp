@@ -103,7 +103,7 @@ namespace UnityEngine.Rendering.SoFunny {
         static void RenderCameraStack(ScriptableRenderContext context, Camera camera) {
             using var profScope = new ProfilingScope(null, ProfilingSampler.Get(FRPProfileId.RenderCameraStack));
 
-            camera.TryGetComponent<UniversalAdditionalCameraData>(out var baseCameraAdditionalData);
+            camera.TryGetComponent<FunnyAdditionalCameraData>(out var baseCameraAdditionalData);
             // Overlay cameras will be rendered stacked while rendering base cameras
             if (baseCameraAdditionalData != null && baseCameraAdditionalData.renderType == CameraRenderType.Overlay)
                 return;
@@ -130,7 +130,7 @@ namespace UnityEngine.Rendering.SoFunny {
         }
 
         internal static void RenderSingleCameraInternal(ScriptableRenderContext context, Camera camera) {
-            UniversalAdditionalCameraData additionalCameraData = null;
+            FunnyAdditionalCameraData additionalCameraData = null;
             /////////////////////////////////////
             // 只是做一个代码保护
             if (UniversalRenderPipeline.IsGameCamera(camera)) {
@@ -227,11 +227,10 @@ namespace UnityEngine.Rendering.SoFunny {
 
         }
 
-
         /// <summary>
-        /// 获取 UniversalAdditionalCameraData 信息
+        /// 获取 FunnyAdditionalCameraData 信息
         /// </summary>
-        static void InitializeCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData) {
+        static void InitializeCameraData(Camera camera, FunnyAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData) {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeCameraData);
 
             cameraData = new CameraData();
@@ -255,7 +254,7 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         /// 设置相机中通用的设置 所有设置都是主相机的参数
         /// </summary>
-        static void InitializeStackedCameraData(Camera camera, UniversalAdditionalCameraData baseAdditionalCameraData, ref CameraData cameraData) {
+        static void InitializeStackedCameraData(Camera camera, FunnyAdditionalCameraData baseAdditionalCameraData, ref CameraData cameraData) {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeStackedCameraData);
 
             var setting = asset;
@@ -294,7 +293,7 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         /// 设置堆栈相机可以不同的设置
         /// </summary>
-        static void InitializeAdditionalCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, ref CameraData cameraData) {
+        static void InitializeAdditionalCameraData(Camera camera, FunnyAdditionalCameraData additionalCameraData, bool resolveFinalTarget, ref CameraData cameraData) {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeAdditionalCameraData);
 
             var setting = asset;
@@ -315,7 +314,7 @@ namespace UnityEngine.Rendering.SoFunny {
                 //cameraData.useScreenCoordOverride = additionalCameraData.useScreenCoordOverride;
                 // 桥接
                 CameraDataUtils.SetUseScreenCoordOverride(ref cameraData, additionalCameraData.useScreenCoordOverride);
-                cameraData.renderer = asset.scriptableRenderer;
+                cameraData.renderer = additionalCameraData.scriptableRenderer;
             } else {
                 cameraData.renderType = CameraRenderType.Base;
                 cameraData.clearDepth = true;
