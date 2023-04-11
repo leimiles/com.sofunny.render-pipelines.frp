@@ -35,7 +35,7 @@ namespace UnityEngine.Rendering.SoFunny {
             }
 
             m_ShaderTagID.Add(new ShaderTagId("FRP"));
-
+            m_ShaderTagID.Add(new ShaderTagId("SRPDefaultUnlit"));
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
