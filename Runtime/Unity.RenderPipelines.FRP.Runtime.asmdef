@@ -22,6 +22,11 @@
             "name": "com.unity.render-pipelines.universal",
             "expression": "0.0.1",
             "define": "UNIVERSAL_RENDERPIPELINE_14_0_4_OR_NEWER"
+        },
+        {
+            "name": "com.unity.visualeffectgraph",
+            "expression": "0.0.1",
+            "define": "VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER"
         }
     ],
     "noEngineReferences": false
