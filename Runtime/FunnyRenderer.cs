@@ -12,6 +12,7 @@ namespace UnityEngine.Rendering.SoFunny {
         internal RenderTargetBufferSystemUtils m_ColorBufferSystem;
         DrawSkyboxPass m_DrawSkyboxPass;
         DrawObjectsPass m_DrawOpaquesPass;
+        DrawObjectsPass m_DrawTransparentPass;
 
         ForwardLights m_ForwardLights;
 
@@ -37,7 +38,7 @@ namespace UnityEngine.Rendering.SoFunny {
 
             m_DrawOpaquesPass = new DrawObjectsPass(FRPProfileId.DrawOpaqueObjects.GetType().Name, true, RenderPassEvent.BeforeRenderingOpaques, RenderQueueRange.opaque, funnyRendererData.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference);
             m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
-
+            m_DrawTransparentPass = new DrawObjectsPass(FRPProfileId.DrawTransparentObjects.GetType().Name, false, RenderPassEvent.BeforeRenderingTransparents, RenderQueueRange.transparent, funnyRendererData.transparentLayerMask, m_DefaultStencilState, stencilData.stencilReference);
             // 还不需要
             //m_ColorBufferSystem = new RenderTargetBufferSystemUtils("_CameraColorAttachment");
 
@@ -61,10 +62,14 @@ namespace UnityEngine.Rendering.SoFunny {
             Camera camera = cameraData.camera;
 
             EnqueuePass(m_DrawOpaquesPass);
+
             if (camera.clearFlags == CameraClearFlags.Skybox && cameraData.renderType != CameraRenderType.Overlay) {
                 if (RenderSettings.skybox != null || (camera.TryGetComponent(out Skybox cameraSkybox) && cameraSkybox.material != null))
                     EnqueuePass(m_DrawSkyboxPass);
             }
+
+            EnqueuePass(m_DrawTransparentPass);
+
         }
     }
 }
