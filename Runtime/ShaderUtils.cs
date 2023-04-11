@@ -3,12 +3,12 @@ using System.Linq;
 
 namespace UnityEngine.Rendering.SoFunny {
     public enum ShaderPathID {
-        Unlit
+        Test
     }
     public static class ShaderUtils {
         static readonly string[] s_ShaderPaths =
         {
-            "So Funny/FRP/Unlit"
+            "So Funny/FRP/Test"
         };
 
         public static string GetShaderPath(ShaderPathID id) {

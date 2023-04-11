@@ -23,8 +23,12 @@ namespace UnityEngine.Rendering.SoFunny {
         // CPU
         FunnyRenderTotal,
         RenderCameraStack,
-        DrawOpaqueObjects
+
+        // DrawObjectsPass
+        DrawOpaqueObjects,
+        DrawTransparentObjects
     }
+
     public class FunnyRenderPipeline : RenderPipeline {
         internal const int defaultRenderingLayerMask = 0x00000001;
 
@@ -87,7 +91,7 @@ namespace UnityEngine.Rendering.SoFunny {
                     }
 #if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
                     //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
-                    VFX.VFXManager.PrepareCamera(currCamera);
+                    VFX.VFXManager.PrepareCamera(camera);
 #endif
                     // Volume控件 暂时不需要
                     //UpdateVolumeFramework(camera, null);
@@ -133,7 +137,7 @@ namespace UnityEngine.Rendering.SoFunny {
             }
 #if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
             //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
-            VFX.VFXManager.PrepareCamera(currCamera);
+            VFX.VFXManager.PrepareCamera(camera);
 #endif
             /// 后处理Volume组件
             //UpdateVolumeFramework(camera, baseCameraAdditionalData);

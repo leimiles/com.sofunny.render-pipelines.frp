@@ -22,7 +22,8 @@ namespace UnityEngine.Rendering.SoFunny {
     }
 
     internal enum DefaultMaterialType {
-        Unlit
+        Test,
+        UIDefault
     }
 
     public class FunnyRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver {
@@ -247,7 +248,7 @@ namespace UnityEngine.Rendering.SoFunny {
         /// </summary>
         public override Material defaultMaterial {
             get {
-                return GetMaterial(DefaultMaterialType.Unlit);
+                return GetMaterial(DefaultMaterialType.Test);
             }
         }
 
@@ -255,63 +256,63 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 设置默认粒子材质球
         /// </summary>
         public override Material defaultParticleMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.Test); }
         }
 
         /// <summary>
         /// 设置默认粒子材质球
         /// </summary>
         public override Material defaultLineMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.Test); }
         }
 
         /// <summary>
         /// 设置默认地形材质球
         /// </summary>
         public override Material defaultTerrainMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.Test); }
         }
 
         /// <summary>
         /// Returns the default UI Material.
         /// </summary>
         public override Material defaultUIMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.UIDefault); }
         }
 
         /// <summary>
         /// Returns the default UI overdraw Material.
         /// </summary>
         public override Material defaultUIOverdrawMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.UIDefault); }
         }
 
         /// <summary>
         /// Returns the default UIETC1 supported Material for this asset.
         /// </summary>
         public override Material defaultUIETC1SupportedMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.UIDefault); }
         }
 
         /// <summary>
         /// Returns the default material for the 2D renderer.
         /// </summary>
         public override Material default2DMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.Test); }
         }
 
         /// <summary>
         /// Returns the default sprite mask material for the 2D renderer.
         /// </summary>
         public override Material default2DMaskMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.Test); }
         }
 
         /// <summary>
         /// Returns the Material that Unity uses to render decals.
         /// </summary>
         public Material decalMaterial {
-            get { return GetMaterial(DefaultMaterialType.Unlit); }
+            get { return GetMaterial(DefaultMaterialType.Test); }
         }
 
         /// <summary>
@@ -332,12 +333,12 @@ namespace UnityEngine.Rendering.SoFunny {
                     }
                 }
                 if (m_DefaultShader == null) {
-                    string path = AssetDatabase.GUIDToAssetPath(ShaderUtils.GetShaderGUID(ShaderPathID.Unlit));
+                    string path = AssetDatabase.GUIDToAssetPath(ShaderUtils.GetShaderGUID(ShaderPathID.Test));
                     m_DefaultShader = AssetDatabase.LoadAssetAtPath<Shader>(path);
                 }
 #endif
                 if (m_DefaultShader == null) {
-                    m_DefaultShader = Shader.Find(ShaderUtils.GetShaderPath(ShaderPathID.Unlit));
+                    m_DefaultShader = Shader.Find(ShaderUtils.GetShaderPath(ShaderPathID.Test));
                 }
                 return m_DefaultShader;
             }
@@ -356,8 +357,10 @@ namespace UnityEngine.Rendering.SoFunny {
             }
 
             switch (materialType) {
-                case DefaultMaterialType.Unlit:
-                    return editorResources.materialResources.unlit;
+                case DefaultMaterialType.Test:
+                    return editorResources.materialResources.test;
+                case DefaultMaterialType.UIDefault:
+                    return editorResources.materialResources.uiDefault;
                 default:
                     return null;
 

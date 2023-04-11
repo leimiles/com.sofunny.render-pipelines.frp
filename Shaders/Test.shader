@@ -1,4 +1,4 @@
-Shader "SoFunny/FRP/Unlit"
+Shader "SoFunny/FRP/Test"
 {
     Properties
     {
