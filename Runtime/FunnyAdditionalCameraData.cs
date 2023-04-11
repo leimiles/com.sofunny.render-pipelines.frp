@@ -107,6 +107,10 @@ namespace UnityEngine.Rendering.SoFunny {
             }
         }
 
+        public void SetRenderer(int index) {
+            m_RendererIndex = index;
+        }
+
         /// <summary>
         /// Returns true if this camera should render post-processing.
         /// </summary>

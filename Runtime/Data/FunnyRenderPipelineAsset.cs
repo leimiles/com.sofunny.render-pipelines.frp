@@ -207,6 +207,38 @@ namespace UnityEngine.Rendering.SoFunny {
         /// UniversalAdditionalCameraData 脚本会调用 但是现在调用的是URP的
         /// </summary>
         public ScriptableRenderer GetRenderer(int index) {
+            if (index == -1) {
+                index = m_DefaultRendererIndex;
+            }
+
+            if (index < -1) {
+                Debug.LogWarning(
+                    $"Renderer at index {index.ToString()} is missing, falling back to Default Renderer {m_RendererDataList[m_DefaultRendererIndex].name}",
+                    this);
+                index = m_DefaultRendererIndex;
+            }
+
+            if (index >= m_RendererDataList.Length || index < 0 || m_RendererDataList[index] == null) {
+                Debug.LogWarning(
+                    $"Renderer at index {index.ToString()} is missing, falling back to Default Renderer {m_RendererDataList[m_DefaultRendererIndex].name}",
+                    this);
+                index = m_DefaultRendererIndex;
+            }
+
+            // RendererData list differs from RendererList. Create RendererList.
+            if (m_Renderers == null || m_Renderers.Length < m_RendererDataList.Length) {
+                DestroyRenderers();
+                CreateRenderers();
+            }
+
+            // This renderer data is outdated or invalid, we recreate the renderer
+            // so we construct all render passes with the updated data
+            // 桥接
+            if (ScriptableRendererDataUtils.IsInvalidated(m_RendererDataList[index]) || m_Renderers[index] == null) {
+                DestroyRenderer(ref m_Renderers[index]);
+                m_Renderers[index] = ScriptableRendererDataUtils.InternalCreateRenderer(m_RendererDataList[index]);
+            }
+
             return m_Renderers[index];
         }
 
@@ -217,6 +249,69 @@ namespace UnityEngine.Rendering.SoFunny {
             get {
                 return GetMaterial(DefaultMaterialType.Unlit);
             }
+        }
+
+        /// <summary>
+        /// 设置默认粒子材质球
+        /// </summary>
+        public override Material defaultParticleMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// 设置默认粒子材质球
+        /// </summary>
+        public override Material defaultLineMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// 设置默认地形材质球
+        /// </summary>
+        public override Material defaultTerrainMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// Returns the default UI Material.
+        /// </summary>
+        public override Material defaultUIMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// Returns the default UI overdraw Material.
+        /// </summary>
+        public override Material defaultUIOverdrawMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// Returns the default UIETC1 supported Material for this asset.
+        /// </summary>
+        public override Material defaultUIETC1SupportedMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// Returns the default material for the 2D renderer.
+        /// </summary>
+        public override Material default2DMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// Returns the default sprite mask material for the 2D renderer.
+        /// </summary>
+        public override Material default2DMaskMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
+        }
+
+        /// <summary>
+        /// Returns the Material that Unity uses to render decals.
+        /// </summary>
+        public Material decalMaterial {
+            get { return GetMaterial(DefaultMaterialType.Unlit); }
         }
 
         /// <summary>
