@@ -211,6 +211,13 @@ namespace UnityEngine.Rendering.SoFunny {
                 index = m_DefaultRendererIndex;
             }
 
+            if (index < -1) {
+                Debug.LogWarning(
+                    $"Renderer at index {index.ToString()} is missing, falling back to Default Renderer {m_RendererDataList[m_DefaultRendererIndex].name}",
+                    this);
+                index = m_DefaultRendererIndex;
+            }
+
             if (index >= m_RendererDataList.Length || index < 0 || m_RendererDataList[index] == null) {
                 Debug.LogWarning(
                     $"Renderer at index {index.ToString()} is missing, falling back to Default Renderer {m_RendererDataList[m_DefaultRendererIndex].name}",
