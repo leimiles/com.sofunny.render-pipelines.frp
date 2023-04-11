@@ -74,6 +74,10 @@ namespace UnityEngine.Rendering.SoFunny {
                     using (new ProfilingScope(null, Profiling.Pipeline.beginCameraRendering)) {
                         BeginCameraRendering(context, camera);
                     }
+#if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+                    //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
+                    VFX.VFXManager.PrepareCamera(currCamera);
+#endif
                     // Volume控件 暂时不需要
                     //UpdateVolumeFramework(camera, null);
 
@@ -116,7 +120,10 @@ namespace UnityEngine.Rendering.SoFunny {
             using (new ProfilingScope(null, Profiling.Pipeline.beginCameraRendering)) {
                 BeginCameraRendering(context, camera);
             }
-
+#if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+            //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
+            VFX.VFXManager.PrepareCamera(currCamera);
+#endif
             /// 后处理Volume组件
             //UpdateVolumeFramework(camera, baseCameraAdditionalData);
             InitializeCameraData(camera, baseCameraAdditionalData, !isStackedRendering, out var baseCameraData);
