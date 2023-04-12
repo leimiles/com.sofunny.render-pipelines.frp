@@ -35,7 +35,11 @@ namespace UnityEngine.Rendering.SoFunny {
             }
 
             m_ShaderTagID.Add(new ShaderTagId("FRP"));
-
+            m_ShaderTagID.Add(new ShaderTagId("SRPDefaultUnlit"));
+#if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+            // use urp vfx graph support
+            m_ShaderTagID.Add(new ShaderTagId("UniversalForwardOnly"));
+#endif
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
@@ -80,13 +84,19 @@ namespace UnityEngine.Rendering.SoFunny {
                 var sortFlags = (passData.m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
                 if (ScriptableRendererUtils.IsUseDepthPriming(renderingData.cameraData.renderer) && passData.m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))
                     sortFlags = SortingCriteria.SortingLayer | SortingCriteria.RenderQueue | SortingCriteria.OptimizeStateChanges | SortingCriteria.CanvasOrder;
+                FilteringSettings filterSettings = passData.m_FilteringSettings;
 
-                FilteringSettings filteringSettings = passData.m_FilteringSettings;
+#if UNITY_EDITOR
+                // When rendering the preview camera, we want the layer mask to be forced to Everything
+                if (renderingData.cameraData.isPreviewCamera) {
+                    filterSettings.layerMask = -1;
+                }
+#endif
                 DrawingSettings drawSettings = RenderingUtils.CreateDrawingSettings(passData.m_ShaderTagIdList, ref renderingData, sortFlags);
-                context.DrawRenderers(renderingData.cullResults, ref drawSettings, ref filteringSettings, ref passData.m_RenderStateBlock);
+                context.DrawRenderers(renderingData.cullResults, ref drawSettings, ref filterSettings, ref passData.m_RenderStateBlock);
 
                 /// 报错返回
-                RenderingUtils.RenderObjectsWithError(context, ref renderingData.cullResults, camera, filteringSettings, SortingCriteria.None);
+                RenderingUtils.RenderObjectsWithError(context, ref renderingData.cullResults, camera, filterSettings, SortingCriteria.None);
             }
         }
 

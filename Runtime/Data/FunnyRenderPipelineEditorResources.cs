@@ -11,11 +11,14 @@ namespace UnityEngine.Rendering.SoFunny {
         [Serializable, ReloadGroup]
         public sealed class ShaderResources {
             /// <summary>
-            /// 默认的 unlit shader，untiy 默认
+            /// 默认的 test shader，untiy 默认
             /// </summary>
-            [Reload("Shaders/Unlit.shader")]
-            public Shader unlit;
-
+            [Reload("Shaders/Test.shader")]
+            public Shader test;
+            [Reload("Shaders/TestTransparent.shader")]
+            public Shader testTransparent;
+            [Reload("Shaders/UI-Default.shader")]
+            public Shader uiDefault;
         }
 
         /// <summary>
@@ -23,8 +26,12 @@ namespace UnityEngine.Rendering.SoFunny {
         /// </summary>
         [Serializable, ReloadGroup]
         public sealed class MaterialResources {
-            [Reload("Runtime/Materials/Unlit.mat")]
-            public Material unlit;
+            [Reload("Runtime/Materials/Test.mat")]
+            public Material test;
+            [Reload("Runtime/Materials/TestTransparent.mat")]
+            public Material testTransparent;
+            [Reload("Runtime/Materials/UI-Default.mat")]
+            public Material uiDefault;
         }
 
         public ShaderResources shaderResources;

@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -8,12 +10,25 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.Profiling;
 
 namespace UnityEngine.Rendering.SoFunny {
+    static class NativeArrayExtensions {
+        public static unsafe ref T UnsafeElementAt<T>(this NativeArray<T> array, int index) where T : struct {
+            return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafeReadOnlyPtr(), index);
+        }
+
+        public static unsafe ref T UnsafeElementAtMutable<T>(this NativeArray<T> array, int index) where T : struct {
+            return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafePtr(), index);
+        }
+    }
     internal enum FRPProfileId {
         // CPU
         FunnyRenderTotal,
         RenderCameraStack,
-        DrawOpaqueObjects
+
+        // DrawObjectsPass
+        DrawOpaqueObjects,
+        DrawTransparentObjects
     }
+
     public class FunnyRenderPipeline : RenderPipeline {
         internal const int defaultRenderingLayerMask = 0x00000001;
 
@@ -74,6 +89,10 @@ namespace UnityEngine.Rendering.SoFunny {
                     using (new ProfilingScope(null, Profiling.Pipeline.beginCameraRendering)) {
                         BeginCameraRendering(context, camera);
                     }
+#if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+                    //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
+                    VFX.VFXManager.PrepareCamera(camera);
+#endif
                     // Volume控件 暂时不需要
                     //UpdateVolumeFramework(camera, null);
 
@@ -103,7 +122,7 @@ namespace UnityEngine.Rendering.SoFunny {
         static void RenderCameraStack(ScriptableRenderContext context, Camera camera) {
             using var profScope = new ProfilingScope(null, ProfilingSampler.Get(FRPProfileId.RenderCameraStack));
 
-            camera.TryGetComponent<UniversalAdditionalCameraData>(out var baseCameraAdditionalData);
+            camera.TryGetComponent<FunnyAdditionalCameraData>(out var baseCameraAdditionalData);
             // Overlay cameras will be rendered stacked while rendering base cameras
             if (baseCameraAdditionalData != null && baseCameraAdditionalData.renderType == CameraRenderType.Overlay)
                 return;
@@ -116,10 +135,14 @@ namespace UnityEngine.Rendering.SoFunny {
             using (new ProfilingScope(null, Profiling.Pipeline.beginCameraRendering)) {
                 BeginCameraRendering(context, camera);
             }
-
             /// 后处理Volume组件
             //UpdateVolumeFramework(camera, baseCameraAdditionalData);
             InitializeCameraData(camera, baseCameraAdditionalData, !isStackedRendering, out var baseCameraData);
+
+#if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+            //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
+            VFX.VFXManager.PrepareCamera(camera);
+#endif
             //RenderTextureDescriptor originalTargetDesc = baseCameraData.cameraTargetDescriptor;
             RenderSingleCamera(context, ref baseCameraData, anyPostProcessingEnabled);
 
@@ -130,7 +153,7 @@ namespace UnityEngine.Rendering.SoFunny {
         }
 
         internal static void RenderSingleCameraInternal(ScriptableRenderContext context, Camera camera) {
-            UniversalAdditionalCameraData additionalCameraData = null;
+            FunnyAdditionalCameraData additionalCameraData = null;
             /////////////////////////////////////
             // 只是做一个代码保护
             if (UniversalRenderPipeline.IsGameCamera(camera)) {
@@ -227,11 +250,29 @@ namespace UnityEngine.Rendering.SoFunny {
 
         }
 
+        /// <summary>
+        /// 初始化 lightdata 数据
+        /// </summary>
+        static void InitializeLightData(FunnyRenderPipelineAsset settings, NativeArray<VisibleLight> visibleLights, int mainLightIndex, out LightData lightData) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeLightData);
+            lightData.mainLightIndex = mainLightIndex;
+            lightData.visibleLights = visibleLights;
+
+            lightData.additionalLightsCount = 0;
+            lightData.maxPerObjectAdditionalLightsCount = 0;
+
+            lightData.supportsAdditionalLights = false;
+            lightData.shadeAdditionalLightsPerVertex = false;
+            lightData.supportsMixedLighting = false;
+            lightData.reflectionProbeBlending = false;
+            lightData.reflectionProbeBoxProjection = false;
+            lightData.supportsLightLayers = false;
+        }
 
         /// <summary>
-        /// 获取 UniversalAdditionalCameraData 信息
+        /// 获取 FunnyAdditionalCameraData 信息
         /// </summary>
-        static void InitializeCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData) {
+        static void InitializeCameraData(Camera camera, FunnyAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData) {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeCameraData);
 
             cameraData = new CameraData();
@@ -255,7 +296,7 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         /// 设置相机中通用的设置 所有设置都是主相机的参数
         /// </summary>
-        static void InitializeStackedCameraData(Camera camera, UniversalAdditionalCameraData baseAdditionalCameraData, ref CameraData cameraData) {
+        static void InitializeStackedCameraData(Camera camera, FunnyAdditionalCameraData baseAdditionalCameraData, ref CameraData cameraData) {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeStackedCameraData);
 
             var setting = asset;
@@ -294,7 +335,7 @@ namespace UnityEngine.Rendering.SoFunny {
         /// <summary>
         /// 设置堆栈相机可以不同的设置
         /// </summary>
-        static void InitializeAdditionalCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, ref CameraData cameraData) {
+        static void InitializeAdditionalCameraData(Camera camera, FunnyAdditionalCameraData additionalCameraData, bool resolveFinalTarget, ref CameraData cameraData) {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeAdditionalCameraData);
 
             var setting = asset;
@@ -315,7 +356,7 @@ namespace UnityEngine.Rendering.SoFunny {
                 //cameraData.useScreenCoordOverride = additionalCameraData.useScreenCoordOverride;
                 // 桥接
                 CameraDataUtils.SetUseScreenCoordOverride(ref cameraData, additionalCameraData.useScreenCoordOverride);
-                cameraData.renderer = asset.scriptableRenderer;
+                cameraData.renderer = additionalCameraData.scriptableRenderer;
             } else {
                 cameraData.renderType = CameraRenderType.Base;
                 cameraData.clearDepth = true;
@@ -348,16 +389,44 @@ namespace UnityEngine.Rendering.SoFunny {
 
             /// 所有灯光
             var visibleLights = cullResults.visibleLights;
-            //int mainLightIndex = UniversalRenderPipeline.GetMainLightIndex(settings, visibleLights);
+            int mainLightIndex = GetMainLightIndex(settings, visibleLights);
 
             /// Temporary
             renderingData = new RenderingData();
 
             renderingData.cullResults = cullResults;
             renderingData.cameraData = cameraData;
+            InitializeLightData(settings, visibleLights, mainLightIndex, out renderingData.lightData);
             //renderingData.commandBuffer = cmd;
             // 桥接
             RenderingDataUtils.SetCommandBuffer(ref renderingData, cmd);
+        }
+
+        static int GetMainLightIndex(FunnyRenderPipelineAsset settings, NativeArray<VisibleLight> visibleLights) {
+            using var profScope = new ProfilingScope(null, Profiling.Pipeline.getMainLightIndex);
+            if (visibleLights.Length == 0) {
+                return -1;
+            }
+            Light sunLight = RenderSettings.sun;
+            int brightestDirectionalLightIndex = -1;
+            float brightestLightIntensity = 0.0f;
+            for (int i = 0; i < visibleLights.Length; ++i) {
+                ref VisibleLight currentVisibleLight = ref visibleLights.UnsafeElementAtMutable(i);
+                Light currentLight = currentVisibleLight.light;
+                if (currentLight == null) {
+                    break;
+                }
+                if (currentVisibleLight.lightType == LightType.Directional) {
+                    if (currentLight == sunLight) {
+                        return i;
+                    }
+                    if (currentLight.intensity > brightestLightIntensity) {
+                        brightestLightIntensity = currentLight.intensity;
+                        brightestDirectionalLightIndex = i;
+                    }
+                }
+            }
+            return brightestDirectionalLightIndex;
         }
 
 
@@ -440,9 +509,11 @@ namespace UnityEngine.Rendering.SoFunny {
 
                 const string k_Name = nameof(FunnyRenderPipeline);
                 public static readonly ProfilingSampler initializeCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeCameraData)}");
+                public static readonly ProfilingSampler initializeLightData = new ProfilingSampler($"{k_Name}.{nameof(InitializeLightData)}");
                 public static readonly ProfilingSampler initializeStackedCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeStackedCameraData)}");
                 public static readonly ProfilingSampler initializeAdditionalCameraData = new ProfilingSampler($"{k_Name}.{nameof(InitializeAdditionalCameraData)}");
                 public static readonly ProfilingSampler initializeRenderingData = new ProfilingSampler($"{k_Name}.{nameof(InitializeRenderingData)}");
+                public static readonly ProfilingSampler getMainLightIndex = new ProfilingSampler($"{k_Name}.{nameof(GetMainLightIndex)}");
 
                 public static class Renderer {
                     const string k_Name = nameof(ScriptableRenderer);
