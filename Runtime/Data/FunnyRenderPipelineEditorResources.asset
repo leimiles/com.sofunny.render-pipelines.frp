@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shaderResources:
     test: {fileID: 4800000, guid: f98ad0c5198aaa345b02b4921d4e6597, type: 3}
+    testTransparent: {fileID: 4800000, guid: d533ef92e9021984cadafe4eea9b435f, type: 3}
     uiDefault: {fileID: 4800000, guid: ee6e57b35ce1cdd438b55e9b3f7bc2d0, type: 3}
   materialResources:
     test: {fileID: 2100000, guid: 4ed92d9b8b2f8494bb4f9a7ee92682f3, type: 2}
+    testTransparent: {fileID: 2100000, guid: dd95340dd2395ba4fb3957b6c0a4f7e8, type: 2}
     uiDefault: {fileID: 2100000, guid: 4da80b5098825934e940e9ea73c9a57e, type: 2}

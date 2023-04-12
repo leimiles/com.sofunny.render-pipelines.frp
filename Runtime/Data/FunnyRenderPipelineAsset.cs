@@ -23,6 +23,7 @@ namespace UnityEngine.Rendering.SoFunny {
 
     internal enum DefaultMaterialType {
         Test,
+        TestTransparent,
         UIDefault
     }
 
@@ -256,14 +257,14 @@ namespace UnityEngine.Rendering.SoFunny {
         /// 设置默认粒子材质球
         /// </summary>
         public override Material defaultParticleMaterial {
-            get { return GetMaterial(DefaultMaterialType.Test); }
+            get { return GetMaterial(DefaultMaterialType.TestTransparent); }
         }
 
         /// <summary>
         /// 设置默认粒子材质球
         /// </summary>
         public override Material defaultLineMaterial {
-            get { return GetMaterial(DefaultMaterialType.Test); }
+            get { return GetMaterial(DefaultMaterialType.TestTransparent); }
         }
 
         /// <summary>
@@ -359,6 +360,8 @@ namespace UnityEngine.Rendering.SoFunny {
             switch (materialType) {
                 case DefaultMaterialType.Test:
                     return editorResources.materialResources.test;
+                case DefaultMaterialType.TestTransparent:
+                    return editorResources.materialResources.testTransparent;
                 case DefaultMaterialType.UIDefault:
                     return editorResources.materialResources.uiDefault;
                 default:

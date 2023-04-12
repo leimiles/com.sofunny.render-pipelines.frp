@@ -9,7 +9,8 @@
     "com.unity.burst": "1.7.3",
     "com.unity.render-pipelines.core": "14.0.4",
     "com.unity.shadergraph": "14.0.4",
-    "com.unity.render-pipelines.universal": "14.0.4"
+    "com.unity.render-pipelines.universal": "14.0.4",
+    "com.unity.visualeffectgraph": "14.0.4"
   },
   "keywords": [
     "graphics",
