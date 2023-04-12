@@ -1,0 +1,30 @@
+{
+    "name": "Unity.RenderPipelines.FRP.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:4fb87321a8048ab4189a484e6cc8448f",
+        "GUID:3eae0364be2026648bf74846acb8a731",
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95",
+        "GUID:b75d3cd3037d383a8d1e2f9a26d73d8a",
+        "GUID:329b4ccd385744985bf3f83cfd77dfe7",
+        "GUID:9604b18aafdbc9346bceb5e19ac9c746",
+        "GUID:116a4d4dbf5c04973bbf517077a062a1"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.visualeffectgraph",
+            "expression": "1.0.0",
+            "define": "HAS_VFX_GRAPH"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -36,6 +36,10 @@ namespace UnityEngine.Rendering.SoFunny {
 
             m_ShaderTagID.Add(new ShaderTagId("FRP"));
             m_ShaderTagID.Add(new ShaderTagId("SRPDefaultUnlit"));
+#if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+            // use urp vfx graph support
+            m_ShaderTagID.Add(new ShaderTagId("UniversalForwardOnly"));
+#endif
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
