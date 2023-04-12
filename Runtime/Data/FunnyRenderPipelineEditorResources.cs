@@ -15,6 +15,8 @@ namespace UnityEngine.Rendering.SoFunny {
             /// </summary>
             [Reload("Shaders/Test.shader")]
             public Shader test;
+            [Reload("Shaders/TestTransparent.shader")]
+            public Shader testTransparent;
             [Reload("Shaders/UI-Default.shader")]
             public Shader uiDefault;
         }
@@ -26,6 +28,8 @@ namespace UnityEngine.Rendering.SoFunny {
         public sealed class MaterialResources {
             [Reload("Runtime/Materials/Test.mat")]
             public Material test;
+            [Reload("Runtime/Materials/TestTransparent.mat")]
+            public Material testTransparent;
             [Reload("Runtime/Materials/UI-Default.mat")]
             public Material uiDefault;
         }
